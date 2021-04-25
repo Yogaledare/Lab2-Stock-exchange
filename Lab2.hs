@@ -187,7 +187,6 @@ tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
 
 
 
-
 test17 = OrderBook Empty Empty
 test15 = [Buy "Ada" 54, Buy "Kålle" 56]
 test16 = Buy "Ada" 12
