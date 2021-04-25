@@ -173,8 +173,10 @@ tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
     let buyRoot  = extractRoot buyBids
         sellRoot = extractRoot sellBids in
     case (buyRoot, sellRoot) of
-        (Just (BuyBid buyName highestBuy, updatedBuyBids), Just (SellBid sellName lowestSell, updatedSellBids))
-            | highestBuy >= lowestSell -> Left (buyName, sellName, highestBuy, newOrderBook)
+        (Just (BuyBid buyName highestBuy, updatedBuyBids), 
+            Just (SellBid sellName lowestSell, updatedSellBids))
+            | highestBuy >= lowestSell -> 
+                Left (buyName, sellName, highestBuy, newOrderBook)
             where
                 newOrderBook = OrderBook updatedBuyBids updatedSellBids
         _ -> Right oldOrderBook
