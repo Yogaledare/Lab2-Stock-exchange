@@ -166,6 +166,8 @@ addToOrderBook (OrderBook buyBids sellBids) bid = case bid of
                                       delete (SellBid name oldPrice) sellBids)
 
 
+
+
 tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
 tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) = 
     let buyRoot  = extractRoot buyBids
@@ -186,20 +188,9 @@ tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
 
 
 
-
-
-
-
-
-
-
-
-
-
 test17 = OrderBook Empty Empty
 test15 = [Buy "Ada" 54, Buy "Kålle" 56]
 test16 = Buy "Ada" 12
-test :: Integer -> Integer
 test x = 5 + x
 ada = BuyBid "Ada" 50
 kålle = BuyBid "Kålle" 50
@@ -222,6 +213,42 @@ test11 = insert marcus $ insert anna $ insert sven test10
 test12 = extractRoot test11
 testc1 = concatMap (\item -> show item ++ ", ") ["a", "b", "c"]
 testc2 = putStrLn testc1
+
+
+
+
+
+-- tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
+-- tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
+--     if  extractRoot buyBids == Just (BuyBid buyName highestBuy, updatedBuyBids) &&
+--             extractRoot sellBids == Just (SellBid sellName lowestSell, updatedSellBids)
+--         then if highestBuy >= lowestSell
+--             then let 
+--                 newOrderBook = OrderBook updatedBuyBids updatedSellBids in
+--                     Left (buyName, sellName, highestBuy, newOrderBook)
+--         else Right oldOrderBook
+
+
+--     | highestBuy >= lowestSell = clearedResponse
+--     | otherwise                = notClearedResponse
+--     where
+--         (buyRoot, sellRoot) = (extractRoot buyBids, extractRoot sellBids)
+--         if ()
+        
+
+--  Right oldOrderBook
+-- Left (buyName, sellName, highestBuy, newOrderBook)
+
+
+    -- let buyRoot  = extractRoot buyBids
+    --     sellRoot = extractRoot sellBids in
+    -- case (buyRoot, sellRoot) of
+    --     (Just (BuyBid buyName highestBuy, updatedBuyBids), Just (SellBid sellName lowestSell, updatedSellBids))
+    --         | highestBuy >= lowestSell -> Left (buyName, sellName, highestBuy, newOrderBook)
+    --         where
+    --             newOrderBook = OrderBook updatedBuyBids updatedSellBids
+    --     _ -> Right oldOrderBook
+
 
 
 --     | highestBuy >= lowestSell = Left (buyName, sellName, highestBuy, newOrderBook)
