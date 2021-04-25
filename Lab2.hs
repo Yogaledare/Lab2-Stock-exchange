@@ -187,6 +187,27 @@ tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
 
 
 
+-- addToOrderBook :: OrderBook -> Bid -> OrderBook
+-- addToOrderBook (OrderBook buyBids sellBids) bid = case bid of 
+--     (Buy name price) -> 
+--         OrderBook
+--             (insert (BuyBid name price) buyBids)
+--             sellBids
+--     (Sell name price) -> 
+--         OrderBook
+--             buyBids
+--             (insert (SellBid name price) sellBids)
+--     (NewBuy name oldPrice newPrice) -> 
+--         OrderBook
+--             (insert (BuyBid name newPrice) $ 
+--                 delete (BuyBid name oldPrice) buyBids)
+--             sellBids
+--     (NewSell name oldPrice newPrice) 
+--         -> OrderBook
+--             buyBids 
+--             (insert (SellBid name newPrice) $ 
+--                 delete (SellBid name oldPrice) sellBids)
+
 
 
 -- addToOrderBook :: OrderBook -> Bid -> OrderBook
