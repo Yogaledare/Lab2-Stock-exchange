@@ -166,8 +166,6 @@ addToOrderBook (OrderBook buyBids sellBids) bid = case bid of
                                       delete (SellBid name oldPrice) sellBids)
 
 
-
-
 tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
 tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) = 
     let buyRoot  = extractRoot buyBids
@@ -181,6 +179,32 @@ tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
                 newOrderBook = OrderBook updatedBuyBids updatedSellBids
         _ -> Right oldOrderBook
 
+
+
+
+
+
+
+
+
+
+
+-- addToOrderBook :: OrderBook -> Bid -> OrderBook
+-- addToOrderBook (OrderBook bb sb) bid = case bid of 
+--     (Buy n p)         -> OrderBook (insert (BuyBid n p) bb) sb
+--     (Sell n p)        -> OrderBook bb (insert (SellBid n p) sb)
+--     (NewBuy n op np)  -> OrderBook (insert (BuyBid n np) $ delete (BuyBid n op) bb) sb
+--     (NewSell n op np) -> OrderBook bb (insert (SellBid n np) $ delete (SellBid n op) sb)
+
+
+
+
+-- tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
+-- tryClearTopBids old@(OrderBook bb sb) = 
+--     case (extractRoot bb, extractRoot sb) of
+--         (Just (BuyBid bn bp, nbb), Just (SellBid sn sp, nsb))
+--             | bp >= sp -> Left (bn, sn, bp, OrderBook nbb nsb)
+--         _ -> Right old
 
 
 
