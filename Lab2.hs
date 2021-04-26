@@ -22,9 +22,6 @@ type Price = Integer
 
 data BuyBid = BuyBid Person Price deriving Eq
 
--- instance Eq BuyBid where
---     (BuyBid _ price1) == (BuyBid _ price2) = price1 == price2
-
 instance Ord BuyBid where
     compare (BuyBid _ price1) (BuyBid _ price2) = compare price2 price1
 
@@ -34,9 +31,6 @@ instance Show BuyBid where
 
 data SellBid = SellBid Person Price deriving Eq
 
--- instance Eq SellBid where
---     (SellBid _ price1) == (SellBid _ price2) = price1 == price2
-
 instance Ord SellBid where
     compare (SellBid _ price1) (SellBid _ price2) = compare price1 price2
 
@@ -44,15 +38,8 @@ instance Show SellBid where
     show (SellBid name price) = show (name ++ " " ++ show price)
 
 
-
 -- | Parses a bid. Incorrectly formatted bids are returned verbatim
 -- (tagged with 'Left').
-
-testRead :: String -> Maybe Integer
-testRead s = case filter (null . snd) $ reads s of
-    [(x, _)] -> Just x
-    _        -> Nothing
-
 
 parseBid :: String -> Either String Bid
 parseBid s = case words s of
@@ -64,14 +51,12 @@ parseBid s = case words s of
         ("NS", Just [oldPrice, newPrice]) -> Right (NewSell name oldPrice newPrice)
         _ -> Left s
     _ -> Left s
-
-testa1 = parseBid "K Ada 50"
-testa2 = words "K Ada 50"
-
-readInteger :: String -> Maybe Integer
-readInteger s = case filter (null . snd) $ reads s of
+    where
+    readInteger :: String -> Maybe Integer 
+    readInteger s = case filter (null . snd) $ reads s of
     [(x, _)] -> Just x
     _        -> Nothing
+
 
 -- | Parses a sequence of bids. Correctly formatted bids are returned
 -- (in the order encountered), and an error message is printed for
@@ -118,71 +103,107 @@ toCommaSeparatedString = intercalate ", "
 
 
 manageOrderBook :: OrderBook -> [Bid] -> IO ()
-manageOrderBook (OrderBook buyBids sellBids) [] = 
+manageOrderBook (OrderBook bbs sbs) [] = 
     do
         putStrLn "\nOrder book:"
-        let sortedSellBidsStrings = map (filter (/= '"') . show) $ sorted sellBids
-        let sortedBuyBidsStrings  = map (filter (/= '"') . show) $ sorted buyBids
+        let sortedSellBidsStrings = map (filter (/= '"') . show) $ sorted sbs
+        let sortedBuyBidsStrings  = map (filter (/= '"') . show) $ sorted bbs
         putStrLn ("Sellers: " ++ toCommaSeparatedString sortedSellBidsStrings)
         putStrLn ("Buyers: " ++ toCommaSeparatedString sortedBuyBidsStrings)
         return ()
-manageOrderBook oldOrderBook@(OrderBook buyBids sellBids) (bid:bids) = 
+manageOrderBook obOld@(OrderBook bbs sbs) (bid:bids) = 
     do
         -- print (bid:bids)
-        let updatedBook = addToOrderBook oldOrderBook bid
+        let updatedBook = addToOrderBook obOld bid
         -- print updatedBook
         let clearedBook = tryClearTopBids updatedBook
         -- print clearedBook
         case clearedBook of
-            Left (buyer, seller, price, newOrderBook) -> 
+            Left (buyer, seller, price, obNew) -> 
                 do
                     putStrLn (buyer ++ " buys a share from " ++ 
                         seller ++ " for " ++ show price ++ "kr")
-                    manageOrderBook newOrderBook bids
+                    manageOrderBook obNew bids
                     return ()
-            Right unchangedOrderBook ->
+            Right obUnchanged ->
                 do
-                    manageOrderBook unchangedOrderBook bids
+                    manageOrderBook obUnchanged bids
                     return ()
 
 
 addToOrderBook :: OrderBook -> Bid -> OrderBook
-addToOrderBook (OrderBook buyBids sellBids) bid = case bid of 
-    (Buy name price)       -> OrderBook
-                                  (insert (BuyBid name price) buyBids)
-                                  sellBids
-    (Sell name price)      -> OrderBook
-                                  buyBids
-                                  (insert (SellBid name price) sellBids)
-    (NewBuy name 
-        oldPrice newPrice) -> OrderBook
-                                  (insert (BuyBid name newPrice)
-                                      $ delete (BuyBid name oldPrice) buyBids)
-                                  sellBids
-    (NewSell name 
-        oldPrice newPrice) -> OrderBook
-                                  buyBids 
-                                  (insert (SellBid name newPrice) $ 
-                                      delete (SellBid name oldPrice) sellBids)
+addToOrderBook (OrderBook bbs sbs) (Buy n p) = OrderBook bbsNew sbs
+    where
+    bbsNew = insert (BuyBid n p) bbs
+addToOrderBook (OrderBook bbs sbs) (Sell n p) = OrderBook bbs sbsNew
+    where
+    sbsNew = insert (SellBid n p) sbs
+addToOrderBook (OrderBook bbs sbs) (NewBuy n pOld pNew) = OrderBook bbsNew sbs
+    where
+    bbsNew = replaceElement oldBid newBid bbs
+    oldBid = BuyBid n pOld
+    newBid = BuyBid n pNew
+addToOrderBook (OrderBook bbs sbs) (NewSell n pOld pNew) = OrderBook bbs sbsNew
+    where
+    sbsNew = replaceElement oldBid newBid sbs
+    oldBid = SellBid n pOld
+    newBid = SellBid n pNew
 
 
 tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
-tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) = 
-    let buyRoot  = extractRoot buyBids
-        sellRoot = extractRoot sellBids in
-    case (buyRoot, sellRoot) of
-        (Just (BuyBid buyName highestBuy, updatedBuyBids), 
-            Just (SellBid sellName lowestSell, updatedSellBids))
-            | highestBuy >= lowestSell -> 
-                Left (buyName, sellName, highestBuy, newOrderBook)
-            where
-                newOrderBook = OrderBook updatedBuyBids updatedSellBids
-        _ -> Right oldOrderBook
+tryClearTopBids obOld@(OrderBook bbs sbs) = 
+    case (extractRoot bbs, extractRoot sbs) of
+        (Just (BuyBid nb pb, bbsNew), Just (SellBid ns ps, sbsNew))
+            | pb >= ps -> Left (nb, ns, pb, OrderBook bbsNew sbsNew)
+        _ -> Right obOld
 
 
 
 
+-- instance Eq BuyBid where
+--     (BuyBid _ price1) == (BuyBid _ price2) = price1 == price2
 
+
+-- instance Eq SellBid where
+--     (SellBid _ price1) == (SellBid _ price2) = price1 == price2
+
+
+    -- let buyRoot  = extractRoot bbs
+    --     sellRoot = extractRoot sbs in
+
+-- tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
+-- tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) = 
+--     let buyRoot  = extractRoot buyBids
+--         sellRoot = extractRoot sellBids in
+--     case (buyRoot, sellRoot) of
+--         (Just (BuyBid buyName highestBuy, updatedBuyBids), 
+--             Just (SellBid sellName lowestSell, updatedSellBids))
+--             | highestBuy >= lowestSell -> 
+--                 Left (buyName, sellName, highestBuy, newOrderBook)
+--             where
+--                 newOrderBook = OrderBook updatedBuyBids updatedSellBids
+--         _ -> Right oldOrderBook
+
+
+
+
+-- = case bid of 
+--     (Buy name price)       -> OrderBook
+--                                   (insert (BuyBid name price) buyBids)
+--                                   sellBids
+--     (Sell name price)      -> OrderBook
+--                                   buyBids
+--                                   (insert (SellBid name price) sellBids)
+--     (NewBuy name 
+--         oldPrice newPrice) -> OrderBook
+--                                   (insert (BuyBid name newPrice)
+--                                       $ delete (BuyBid name oldPrice) buyBids)
+--                                   sellBids
+--     (NewSell name 
+--         oldPrice newPrice) -> OrderBook
+--                                   buyBids 
+--                                   (insert (SellBid name newPrice) $ 
+--                                       delete (SellBid name oldPrice) sellBids)
 
 
 
@@ -231,38 +252,41 @@ tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
 
 
 
+-- testa1 = parseBid "K Ada 50"
+-- testa2 = words "K Ada 50"
+-- test17 = OrderBook Empty Empty
+-- test15 = [Buy "Ada" 54, Buy "Kålle" 56]
+-- test16 = Buy "Ada" 12
+-- test x = 5 + x
+-- ada = BuyBid "Ada" 50
+-- kålle = BuyBid "Kålle" 50
+-- abel = BuyBid "Abel" 53
+-- kain = BuyBid "Kain" 43
+-- sven = BuyBid "Sven" 59
+-- anna = BuyBid "Anna" 73
+-- marcus = BuyBid "Marcus" 72
+-- heap1 = Node ada Empty heap2 
+-- heap2 = Node kålle Empty Empty 
+-- heap3 = Node abel Empty Empty  
+-- heap4 = Node kain Empty heap1
+-- test3 = Node sven Empty Empty 
+-- test6 = merge heap4 test3
+-- test7 = merge test6 (Node anna (Node marcus Empty Empty) Empty)
+-- test8 = insert ada heap2
+-- test9 = insert kain test8
+-- test10 = insert abel test9
+-- test11 = insert marcus $ insert anna $ insert sven test10
+-- test12 = extractRoot test11
+-- testc1 = concatMap (\item -> show item ++ ", ") ["a", "b", "c"]
+-- testc2 = putStrLn testc1
 
 
 
-test17 = OrderBook Empty Empty
-test15 = [Buy "Ada" 54, Buy "Kålle" 56]
-test16 = Buy "Ada" 12
-test x = 5 + x
-ada = BuyBid "Ada" 50
-kålle = BuyBid "Kålle" 50
-abel = BuyBid "Abel" 53
-kain = BuyBid "Kain" 43
-sven = BuyBid "Sven" 59
-anna = BuyBid "Anna" 73
-marcus = BuyBid "Marcus" 72
-heap1 = Node ada Empty heap2 
-heap2 = Node kålle Empty Empty 
-heap3 = Node abel Empty Empty  
-heap4 = Node kain Empty heap1
-test3 = Node sven Empty Empty 
-test6 = merge heap4 test3
-test7 = merge test6 (Node anna (Node marcus Empty Empty) Empty)
-test8 = insert ada heap2
-test9 = insert kain test8
-test10 = insert abel test9
-test11 = insert marcus $ insert anna $ insert sven test10
-test12 = extractRoot test11
-testc1 = concatMap (\item -> show item ++ ", ") ["a", "b", "c"]
-testc2 = putStrLn testc1
 
-
-
-
+-- testRead :: String -> Maybe Integer
+-- testRead s = case filter (null . snd) $ reads s of
+--     [(x, _)] -> Just x
+--     _        -> Nothing
 
 -- tryClearTopBids :: OrderBook -> Either (Person, Person, Price, OrderBook) OrderBook
 -- tryClearTopBids oldOrderBook@(OrderBook buyBids sellBids) =
